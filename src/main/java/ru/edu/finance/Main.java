@@ -1,6 +1,6 @@
 package ru.edu.finance;
 
-import ru.edu.finance.app.CommandRouter;
+import ru.edu.finance.cli.CommandRouter;
 
 import java.util.Scanner;
 
