@@ -1,10 +1,12 @@
 package ru.edu.finance.cli;
 
+import ru.edu.finance.service.FinanceService;
 import ru.edu.finance.service.UserService;
 
 public class CommandRouter {
 
-    private final UserService authService = new UserService();
+    private final UserService userService = new UserService();
+    private final FinanceService financeService = new FinanceService();
 
     public boolean handle(String input) {
         if (input == null || input.isBlank()) {
@@ -36,6 +38,14 @@ public class CommandRouter {
                 handleUsers();
                 return true;
 
+            case "income":
+                handleIncome(parts);
+                return true;
+
+            case "expense":
+                handleExpense(parts);
+                return true;
+
             case "exit":
                 System.out.println("Goodbye!");
                 return false;
@@ -52,12 +62,10 @@ public class CommandRouter {
             return;
         }
 
-        boolean success = authService.register(parts[1], parts[2]);
-        if (success) {
-            System.out.println("User registered successfully");
-        } else {
-            System.out.println("Login already exists");
-        }
+        boolean success = userService.register(parts[1], parts[2]);
+        System.out.println(success
+                ? "User registered successfully"
+                : "Login already exists");
     }
 
     private void handleLogin(String[] parts) {
@@ -66,25 +74,23 @@ public class CommandRouter {
             return;
         }
 
-        boolean success = authService.login(parts[1], parts[2]);
-        if (success) {
-            System.out.println("Logged in as " + parts[1]);
-        } else {
-            System.out.println("Invalid login or password");
-        }
+        boolean success = userService.login(parts[1], parts[2]);
+        System.out.println(success
+                ? "Logged in as " + parts[1]
+                : "Invalid login or password");
     }
 
     private void handleLogout() {
-        if (!authService.isAuthenticated()) {
+        if (!userService.isAuthenticated()) {
             System.out.println("You are not logged in");
             return;
         }
-        authService.logout();
+        userService.logout();
         System.out.println("Logged out");
     }
 
     private void handleUsers() {
-        var users = authService.getAllUsers();
+        var users = userService.getAllUsers();
 
         if (users.isEmpty()) {
             System.out.println("No registered users");
@@ -97,6 +103,50 @@ public class CommandRouter {
         );
     }
 
+    private void handleIncome(String[] parts) {
+        if (!userService.isAuthenticated()) {
+            System.out.println("Please login first");
+            return;
+        }
+        if (parts.length != 3) {
+            System.out.println("Usage: income <category> <amount>");
+            return;
+        }
+
+        try {
+            financeService.addIncome(
+                    userService.getCurrentUser(),
+                    parts[1],
+                    parts[2]
+            );
+            System.out.println("Income added");
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void handleExpense(String[] parts) {
+        if (!userService.isAuthenticated()) {
+            System.out.println("Please login first");
+            return;
+        }
+        if (parts.length != 3) {
+            System.out.println("Usage: expense <category> <amount>");
+            return;
+        }
+
+        try {
+            financeService.addExpense(
+                    userService.getCurrentUser(),
+                    parts[1],
+                    parts[2]
+            );
+            System.out.println("Expense added");
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     private void printHelp() {
         System.out.println("""
                 Available commands:
@@ -104,6 +154,8 @@ public class CommandRouter {
                   login <login> <password>
                   logout
                   users
+                  income <category> <amount>
+                  expense <category> <amount>
                   help
                   exit
                 """);
