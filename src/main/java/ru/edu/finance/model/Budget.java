@@ -4,8 +4,11 @@ import java.math.BigDecimal;
 
 public class Budget {
 
-    private final String category;
+    private String category;
     private BigDecimal limit;
+
+    public Budget() {
+    }
 
     public Budget(String category, BigDecimal limit) {
         this.category = category;

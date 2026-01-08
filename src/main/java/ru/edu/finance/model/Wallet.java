@@ -5,15 +5,21 @@ import java.util.*;
 
 public class Wallet {
 
-    private final List<Transaction> transactions = new ArrayList<>();
-    private final Map<String, Budget> budgets = new HashMap<>();
+    private List<Transaction> transactions;
+    private Map<String, Budget> budgets;
+
+    // ОБЯЗАТЕЛЬНО для Jackson
+    public Wallet() {
+        this.transactions = new ArrayList<>();
+        this.budgets = new HashMap<>();
+    }
 
     public void addTransaction(Transaction transaction) {
         transactions.add(transaction);
     }
 
     public List<Transaction> getTransactions() {
-        return List.copyOf(transactions);
+        return transactions;
     }
 
     public void setBudget(String category, BigDecimal limit) {
@@ -25,14 +31,17 @@ public class Wallet {
     }
 
     public Map<String, Budget> getBudgets() {
-        return Map.copyOf(budgets);
+        return budgets;
     }
 
     public BigDecimal getTotalExpensesByCategory(String category) {
-        return transactions.stream()
-                .filter(t -> t.getType() == TransactionType.EXPENSE)
-                .filter(t -> t.getCategory().equalsIgnoreCase(category))
-                .map(Transaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal sum = BigDecimal.ZERO;
+        for (Transaction t : transactions) {
+            if (t.getType() == TransactionType.EXPENSE
+                    && t.getCategory().equalsIgnoreCase(category)) {
+                sum = sum.add(t.getAmount());
+            }
+        }
+        return sum;
     }
 }

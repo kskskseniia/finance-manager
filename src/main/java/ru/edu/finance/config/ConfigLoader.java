@@ -6,7 +6,7 @@ import java.util.Properties;
 
 public final class ConfigLoader {
 
-    private static final Properties PROPERTIES = new Properties();
+    private static final Properties PROPS = new Properties();
 
     static {
         try (InputStream is = ConfigLoader.class
@@ -16,23 +16,22 @@ public final class ConfigLoader {
             if (is == null) {
                 throw new RuntimeException("config.properties not found");
             }
-
-            PROPERTIES.load(is);
+            PROPS.load(is);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load config.properties", e);
+            throw new RuntimeException("Ошибка загрузки config.properties", e);
         }
     }
 
-    private ConfigLoader() {
+    private ConfigLoader() {}
+
+    public static BigDecimal budgetWarningThreshold() {
+        return new BigDecimal(
+                PROPS.getProperty("budget.warning.threshold", "0.80")
+        );
     }
 
-    public static BigDecimal getBudgetWarningThreshold() {
-        return new BigDecimal(
-                PROPERTIES.getProperty(
-                        "budget.warning.threshold",
-                        "0.80"
-                )
-        );
+    public static String storageDir() {
+        return PROPS.getProperty("storage.data.dir", "data");
     }
 }

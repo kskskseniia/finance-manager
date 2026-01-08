@@ -1,10 +1,9 @@
 package ru.edu.finance.cli;
 
 import ru.edu.finance.model.User;
-import ru.edu.finance.service.FinanceService;
-import ru.edu.finance.service.UserService;
-import ru.edu.finance.service.StatisticsService;
-import ru.edu.finance.service.TransferService;
+import ru.edu.finance.service.*;
+import ru.edu.finance.storage.FileStorage;
+import ru.edu.finance.util.Formatter;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,10 +15,12 @@ public class CommandRouter {
     private final StatisticsService statisticsService = new StatisticsService();
     private final TransferService transferService =
             new TransferService(financeService, userService);
+    private final ReportService reportService =
+            new ReportService(statisticsService, new FileStorage());
 
     public boolean handle(String input) {
         if (input == null || input.isBlank()) {
-            System.out.println("Empty command. Type 'help'");
+            System.out.println("Пустая команда. Введите 'help' для справки");
             return true;
         }
 
@@ -71,74 +72,78 @@ public class CommandRouter {
                 handleStats(parts);
                 return true;
 
+            case "export":
+                handleExport(parts);
+                return true;
+
             case "exit":
-                System.out.println("Goodbye!");
+                handleExit();
                 return false;
 
             default:
-                System.out.println("Unknown command. Type 'help'");
+                System.out.println("Неизвестная команда. Введите 'help'");
                 return true;
         }
     }
 
-    /* ================= AUTH ================= */
+    /* ================= АУТЕНТИФИКАЦИЯ ================= */
 
     private void handleRegister(String[] parts) {
         if (parts.length != 3) {
-            System.out.println("Usage: register <login> <password>");
+            System.out.println("Использование: register <login> <password>");
             return;
         }
 
         boolean success = userService.register(parts[1], parts[2]);
         System.out.println(success
-                ? "User registered successfully"
-                : "Login already exists");
+                ? "Пользователь успешно зарегистрирован"
+                : "Пользователь с таким логином уже существует");
     }
 
     private void handleLogin(String[] parts) {
         if (parts.length != 3) {
-            System.out.println("Usage: login <login> <password>");
+            System.out.println("Использование: login <login> <password>");
             return;
         }
 
         boolean success = userService.login(parts[1], parts[2]);
         System.out.println(success
-                ? "Logged in as " + parts[1]
-                : "Invalid login or password");
+                ? "Вход выполнен. Пользователь: " + parts[1]
+                : "Неверный логин или пароль");
     }
 
     private void handleLogout() {
         if (!userService.isAuthenticated()) {
-            System.out.println("You are not logged in");
+            System.out.println("Вы не вошли в систему");
             return;
         }
         userService.logout();
-        System.out.println("Logged out");
+        System.out.println("Вы успешно вышли из системы");
     }
 
     private void handleUsers() {
         var users = userService.getAllUsers();
 
         if (users.isEmpty()) {
-            System.out.println("No registered users");
+            System.out.println("Пользователи не зарегистрированы");
             return;
         }
 
-        System.out.println("Registered users:");
+        System.out.println("Зарегистрированные пользователи:");
         users.keySet().forEach(login ->
                 System.out.println(" - " + login)
         );
     }
 
-    /* ================= FINANCE ================= */
+    /* ================= ФИНАНСЫ ================= */
 
     private void handleIncome(String[] parts) {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
         if (parts.length != 3) {
-            System.out.println("Usage: income <category> <amount>");
+            System.out.println("Использование: income <категория> <сумма>");
             return;
         }
 
@@ -148,7 +153,10 @@ public class CommandRouter {
                     parts[1],
                     parts[2]
             );
-            System.out.println("Income added");
+            System.out.println(
+                    "Доход добавлен: категория = " + parts[1]
+                            + ", сумма = " + Formatter.money(new BigDecimal(parts[2]))
+            );
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
@@ -156,11 +164,11 @@ public class CommandRouter {
 
     private void handleExpense(String[] parts) {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
         if (parts.length != 3) {
-            System.out.println("Usage: expense <category> <amount>");
+            System.out.println("Использование: expense <категория> <сумма>");
             return;
         }
 
@@ -170,7 +178,10 @@ public class CommandRouter {
                     parts[1],
                     parts[2]
             );
-            System.out.println("Expense added");
+            System.out.println(
+                    "Расход добавлен: категория = " + parts[1]
+                            + ", сумма = " + Formatter.money(new BigDecimal(parts[2]))
+            );
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
@@ -178,11 +189,11 @@ public class CommandRouter {
 
     private void handleTransfer(String[] parts) {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
         if (parts.length != 3) {
-            System.out.println("Usage: transfer <toLogin> <amount>");
+            System.out.println("Использование: transfer <login> <сумма>");
             return;
         }
 
@@ -192,19 +203,24 @@ public class CommandRouter {
                     parts[1],
                     parts[2]
             );
-            System.out.println("Transfer completed");
+            System.out.println(
+                    "Перевод выполнен: получатель = " + parts[1]
+                            + ", сумма = " + Formatter.money(new BigDecimal(parts[2]))
+            );
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
     }
 
+    /* ================= БЮДЖЕТЫ ================= */
+
     private void handleSetBudget(String[] parts) {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
         if (parts.length != 3) {
-            System.out.println("Usage: set-budget <category> <limit>");
+            System.out.println("Использование: set-budget <категория> <лимит>");
             return;
         }
 
@@ -214,7 +230,12 @@ public class CommandRouter {
                     parts[1],
                     parts[2]
             );
-            System.out.println("Budget set for category: " + parts[1]);
+            System.out.println(
+                    "Бюджет установлен: категория = "
+                            + parts[1]
+                            + ", лимит = "
+                            + Formatter.money(new BigDecimal(parts[2]))
+            );
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
@@ -222,7 +243,7 @@ public class CommandRouter {
 
     private void handleBudgets() {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
 
@@ -231,11 +252,11 @@ public class CommandRouter {
                 .getBudgets();
 
         if (budgets.isEmpty()) {
-            System.out.println("No budgets set");
+            System.out.println("Бюджеты не заданы");
             return;
         }
 
-        System.out.println("Budgets:");
+        System.out.println("Бюджеты по категориям:");
         budgets.values().forEach(budget -> {
             var spent = userService.getCurrentUser()
                     .getWallet()
@@ -244,18 +265,18 @@ public class CommandRouter {
             var remaining = budget.getLimit().subtract(spent);
 
             System.out.println(
-                    budget.getCategory()
-                            + ": limit=" + budget.getLimit()
-                            + ", remaining=" + remaining
+                    "  " + budget.getCategory()
+                            + ": лимит = " + Formatter.money(budget.getLimit())
+                            + ", остаток = " + Formatter.money(remaining)
             );
         });
     }
 
-    /* ================= STATS ================= */
+    /* ================= СТАТИСТИКА ================= */
 
     private void handleStats(String[] parts) {
         if (!userService.isAuthenticated()) {
-            System.out.println("Please login first");
+            System.out.println("Сначала выполните вход");
             return;
         }
 
@@ -276,37 +297,41 @@ public class CommandRouter {
             return;
         }
 
-        System.out.println("Usage:");
+        System.out.println("Использование:");
         System.out.println("  stats");
-        System.out.println("  stats category <name>");
-        System.out.println("  stats categories <cat1,cat2,...>");
+        System.out.println("  stats category <категория>");
+        System.out.println("  stats categories <a,b,c>");
     }
 
     private void printGeneralStats(User user) {
         var totalIncome = statisticsService.getTotalIncome(user);
         var totalExpense = statisticsService.getTotalExpense(user);
 
-        System.out.println("=== Statistics ===");
+        System.out.println("========== Статистика ==========");
 
-        System.out.println("Total income:  " + totalIncome);
+        System.out.println("Общий доход: "
+                + Formatter.money(totalIncome));
 
         var incomeByCategory = statisticsService.getIncomeByCategory(user);
         if (!incomeByCategory.isEmpty()) {
-            System.out.println("Income by category:");
+            System.out.println("Доходы по категориям:");
             incomeByCategory.forEach((cat, sum) ->
-                    System.out.println("  " + cat + ": " + sum)
+                    System.out.println("  " + cat + ": " + Formatter.money(sum))
             );
         }
 
-        System.out.println("Total expense: " + totalExpense);
+        System.out.println("Общие расходы: "
+                + Formatter.money(totalExpense));
 
         var expenseByCategory = statisticsService.getExpensesByCategory(user);
         if (!expenseByCategory.isEmpty()) {
-            System.out.println("Expenses by category:");
+            System.out.println("Расходы по категориям:");
             expenseByCategory.forEach((cat, sum) ->
-                    System.out.println("  " + cat + ": " + sum)
+                    System.out.println("  " + cat + ": " + Formatter.money(sum))
             );
         }
+
+        System.out.println("================================");
     }
 
     private void printSingleCategory(User user, String category) {
@@ -314,11 +339,14 @@ public class CommandRouter {
                 .getExpenseForCategories(user, List.of(category));
 
         if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            System.out.println("No expenses for category: " + category);
+            System.out.println("Расходы по категории отсутствуют: " + category);
             return;
         }
 
-        System.out.println("Expenses for " + category + ": " + amount);
+        System.out.println(
+                "Расходы по категории " + category + ": "
+                        + Formatter.money(amount)
+        );
     }
 
     private void printMultipleCategories(User user, String rawCategories) {
@@ -328,12 +356,41 @@ public class CommandRouter {
                 .getExpenseForCategories(user, categories);
 
         if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            System.out.println("No expenses for selected categories");
+            System.out.println("Расходы по выбранным категориям отсутствуют");
             return;
         }
 
-        System.out.println("Expenses for categories " + categories + ": " + amount);
+        System.out.println(
+                "Расходы по категориям " + categories + ": "
+                        + Formatter.money(amount)
+        );
     }
+
+    private void handleExport(String[] parts) {
+        if (!userService.isAuthenticated()) {
+            System.out.println("Сначала выполните вход");
+            return;
+        }
+
+        if (parts.length != 2 || !parts[1].equalsIgnoreCase("stats")) {
+            System.out.println("Использование: export stats");
+            return;
+        }
+
+        reportService.exportStatistics(userService.getCurrentUser());
+        System.out.println("Отчёт по статистике сохранён");
+    }
+
+    /* ================= EXIT ================= */
+
+    private void handleExit() {
+        if (userService.isAuthenticated()) {
+            userService.logout();
+            System.out.println("Данные пользователя сохранены");
+        }
+        System.out.println("Выход из приложения.");
+    }
+
 
     /* ================= HELP ================= */
 
@@ -345,7 +402,7 @@ public class CommandRouter {
               register <login> <password>     Регистрация нового пользователя
               login <login> <password>        Вход в систему
               logout                          Выход из текущей сессии
-              users                           Показать всех пользователей (отладка)
+              users                           (debug) Показать всех залогированных пользователей
 
             ФИНАНСЫ
               income <category> <amount>      Добавить доход
@@ -361,6 +418,9 @@ public class CommandRouter {
               stats category <name>           Статистика по одной категории
               stats categories <a,b,c>        Статистика по нескольким категориям
 
+            ОТЧЁТЫ
+              export stats                    Экспорт статистики в JSON-файл
+            
             СИСТЕМА
               help                            Показать эту справку
               exit                            Выйти из приложения

@@ -67,7 +67,7 @@ public class FinanceService {
 
             BigDecimal limit = budget.getLimit();
             BigDecimal warningLimit =
-                    limit.multiply(ConfigLoader.getBudgetWarningThreshold());
+                    limit.multiply(ConfigLoader.budgetWarningThreshold());
 
             if (spent.compareTo(limit) > 0) {
                 System.out.println(
@@ -80,7 +80,7 @@ public class FinanceService {
             } else if (spent.compareTo(warningLimit) >= 0) {
                 System.out.println(
                         "Budget is almost exceeded ("
-                                + ConfigLoader.getBudgetWarningThreshold()
+                                + ConfigLoader.budgetWarningThreshold()
                                 .multiply(new BigDecimal("100"))
                                 + "%) for category: " + category
                 );

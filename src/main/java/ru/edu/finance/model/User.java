@@ -2,9 +2,13 @@ package ru.edu.finance.model;
 
 public class User {
 
-    private final String login;
-    private final String password;
-    private final Wallet wallet;
+    private String login;
+    private String password;
+    private Wallet wallet;
+
+    public User() {
+        this.wallet = new Wallet();
+    }
 
     public User(String login, String password) {
         this.login = login;
@@ -16,11 +20,23 @@ public class User {
         return login;
     }
 
-    public boolean checkPassword(String password) {
-        return this.password.equals(password);
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public Wallet getWallet() {
         return wallet;
+    }
+
+    public void setWallet(Wallet wallet) {
+        this.wallet = wallet;
+    }
+
+    public boolean checkPassword(String rawPassword) {
+        return password != null && password.equals(rawPassword);
     }
 }

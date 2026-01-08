@@ -1,14 +1,17 @@
 package ru.edu.finance.model;
 
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class Transaction {
 
-    private final TransactionType type;
-    private final String category;
-    private final BigDecimal amount;
-    private final LocalDateTime dateTime;
+    private TransactionType type;
+    private String category;
+    private BigDecimal amount;
+    private LocalDateTime dateTime;
+
+    public Transaction() {
+    }
 
     public Transaction(TransactionType type, String category, BigDecimal amount) {
         this.type = type;
