@@ -1,6 +1,7 @@
 package ru.edu.finance.cli;
 
 import ru.edu.finance.model.User;
+import ru.edu.finance.report.ReportFormat;
 import ru.edu.finance.service.*;
 import ru.edu.finance.storage.FileStorage;
 import ru.edu.finance.util.Formatter;
@@ -367,18 +368,31 @@ public class CommandRouter {
     }
 
     private void handleExport(String[] parts) {
+
         if (!userService.isAuthenticated()) {
             System.out.println("Сначала выполните вход");
             return;
         }
 
-        if (parts.length != 2 || !parts[1].equalsIgnoreCase("stats")) {
-            System.out.println("Использование: export stats");
+        if (parts.length < 2 || !parts[1].equalsIgnoreCase("stats")) {
+            System.out.println("Использование: export stats [json|csv]");
             return;
         }
 
-        reportService.exportStatistics(userService.getCurrentUser());
-        System.out.println("Отчёт по статистике сохранён");
+        ReportFormat format = ReportFormat.JSON;
+
+        if (parts.length == 3) {
+            try {
+                format = ReportFormat.valueOf(parts[2].toUpperCase());
+            } catch (IllegalArgumentException e) {
+                System.out.println("Неизвестный формат. Доступно: json, csv");
+                return;
+            }
+        }
+
+        reportService.exportStatistics(userService.getCurrentUser(), format);
+
+        System.out.println("Отчёт сохранён в формате " + format);
     }
 
     /* ================= EXIT ================= */
@@ -419,7 +433,9 @@ public class CommandRouter {
               stats categories <a,b,c>        Статистика по нескольким категориям
 
             ОТЧЁТЫ
-              export stats                    Экспорт статистики в JSON-файл
+              export stats                    Экспорт статистики (JSON)
+              export stats json               Экспорт статистики в JSON
+              export stats csv                Экспорт статистики в CSV
             
             СИСТЕМА
               help                            Показать эту справку

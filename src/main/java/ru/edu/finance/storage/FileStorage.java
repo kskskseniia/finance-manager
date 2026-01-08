@@ -10,6 +10,8 @@ import ru.edu.finance.report.StatisticsReport;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 
 public class FileStorage {
 
@@ -60,20 +62,57 @@ public class FileStorage {
         return new File(dataDir, "user_" + login + ".json");
     }
 
-    public void saveStatisticsReport(StatisticsReport report) {
+    public void saveStatisticsJson(StatisticsReport report) {
         try {
             File dir = new File(dataDir, "reports");
             if (!dir.exists()) {
                 dir.mkdirs();
             }
 
-            String filename = "stats_" + report.getLogin() + ".json";
-            File file = new File(dir, filename);
-
+            File file = new File(dir, "stats_" + report.getLogin() + ".json");
             mapper.writeValue(file, report);
 
         } catch (IOException e) {
-            throw new RuntimeException("Ошибка сохранения отчёта", e);
+            throw new RuntimeException("Ошибка сохранения JSON-отчёта", e);
         }
     }
+
+    public void saveStatisticsCsv(StatisticsReport report) {
+        try {
+            File dir = new File(dataDir, "reports");
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            File file = new File(dir, "stats_" + report.getLogin() + ".csv");
+
+            try (PrintWriter writer = new PrintWriter(file, StandardCharsets.UTF_8)) {
+
+                writer.println("login,total_income,total_expense");
+                writer.println(report.getLogin() + ","
+                        + report.getTotalIncome() + ","
+                        + report.getTotalExpense());
+
+                writer.println();
+                writer.println("income_by_category");
+                writer.println("category,amount");
+
+                for (var e : report.getIncomeByCategory().entrySet()) {
+                    writer.println(e.getKey() + "," + e.getValue());
+                }
+
+                writer.println();
+                writer.println("expense_by_category");
+                writer.println("category,amount");
+
+                for (var e : report.getExpenseByCategory().entrySet()) {
+                    writer.println(e.getKey() + "," + e.getValue());
+                }
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Ошибка сохранения CSV-отчёта", e);
+        }
+    }
+
 }
