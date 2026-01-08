@@ -46,6 +46,14 @@ public class CommandRouter {
                 handleExpense(parts);
                 return true;
 
+            case "set-budget":
+                handleSetBudget(parts);
+                return true;
+
+            case "budgets":
+                handleBudgets();
+                return true;
+
             case "exit":
                 System.out.println("Goodbye!");
                 return false;
@@ -147,6 +155,59 @@ public class CommandRouter {
         }
     }
 
+    private void handleSetBudget(String[] parts) {
+        if (!userService.isAuthenticated()) {
+            System.out.println("Please login first");
+            return;
+        }
+        if (parts.length != 3) {
+            System.out.println("Usage: set-budget <category> <limit>");
+            return;
+        }
+
+        try {
+            financeService.setBudget(
+                    userService.getCurrentUser(),
+                    parts[1],
+                    parts[2]
+            );
+            System.out.println("Budget set for category: " + parts[1]);
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private void handleBudgets() {
+        if (!userService.isAuthenticated()) {
+            System.out.println("Please login first");
+            return;
+        }
+
+        var budgets = userService.getCurrentUser()
+                .getWallet()
+                .getBudgets();
+
+        if (budgets.isEmpty()) {
+            System.out.println("No budgets set");
+            return;
+        }
+
+        System.out.println("Budgets:");
+        budgets.values().forEach(budget -> {
+            var spent = userService.getCurrentUser()
+                    .getWallet()
+                    .getTotalExpensesByCategory(budget.getCategory());
+
+            var remaining = budget.getLimit().subtract(spent);
+
+            System.out.println(
+                    budget.getCategory()
+                            + ": limit=" + budget.getLimit()
+                            + ", remaining=" + remaining
+            );
+        });
+    }
+
     private void printHelp() {
         System.out.println("""
                 Available commands:
@@ -156,6 +217,8 @@ public class CommandRouter {
                   users
                   income <category> <amount>
                   expense <category> <amount>
+                  set-budget <category> <limit>
+                  budgets
                   help
                   exit
                 """);
