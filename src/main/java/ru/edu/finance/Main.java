@@ -1,17 +1,28 @@
 package ru.edu.finance;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+import ru.edu.finance.app.CommandRouter;
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+import java.util.Scanner;
+
+public class Main {
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        CommandRouter router = new CommandRouter();
+
+        System.out.println("Finance Manager started");
+        System.out.println("Type 'help' to see available commands");
+
+        while (true) {
+            System.out.print("> ");
+            String input = scanner.nextLine();
+
+            boolean shouldContinue = router.handle(input);
+            if (!shouldContinue) {
+                break;
+            }
         }
+
+        scanner.close();
     }
 }
